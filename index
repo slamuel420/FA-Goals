@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Advisor Growth Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Focus -->
+    <!-- Application Structure Plan: A personal dashboard structure was chosen because the source report is a goal-tracking plan for an individual user. This structure provides the most direct and functional way to interact with personal goals. The information architecture uses a high-level KPI summary at the top for at-a-glance status checks on primary outcomes (AUM, Clients). A tabbed navigation system logically segments the detailed activity metrics into the three core strategies from the report (Maximize, Acquire, Operate), preventing information overload and mirroring the user's own planning structure. This design transforms a static text document into a dynamic, interactive tool for accountability and motivation, prioritizing ease of data entry and immediate visual feedback. -->
+    <!-- Visualization & Content Choices: 
+        - Overall Targets (AUM/Clients): Goal: Compare current vs. target. Viz: Horizontal bar charts from Chart.js are used as progress gauges. Interaction: Values update automatically based on user input elsewhere. Justification: Provides a clear, high-impact visual of progress on the most important goals.
+        - Activity Metrics (Calls/Emails): Goal: Inform and track recurring tasks. Viz: Interactive HTML/CSS cards with number inputs and simple progress bars. Interaction: User enters a number, and the corresponding progress bar updates instantly. Justification: This is a lightweight, intuitive, and highly responsive method for logging frequent activity data without the overhead of a full chart instance for every metric.
+        - Aggregate Performance: Goal: Synthesize performance across strategies. Viz: A single Radar Chart from Chart.js. Interaction: The chart automatically updates as individual activity metrics are completed. Justification: A radar chart is ideal for showing balance and identifying areas of high or low performance across the three core strategies at a single glance.
+        - Binary Tasks (Niche Defined): Goal: Track one-time completion. Viz: Simple card with a checkbox. Interaction: User clicks to toggle completion status. Justification: The most straightforward interaction for a done/not-done task.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8f7f4; }
+        .tab-active { border-color: #4a5568; color: #2d3748; background-color: #e2e8f0; }
+        .tab-inactive { border-color: transparent; color: #718096; }
+        .chart-container { position: relative; width: 100%; max-width: 800px; margin-left: auto; margin-right: auto; height: 120px; max-height: 120px; }
+        @media (min-width: 768px) { .chart-container { height: 150px; max-height: 150px; } }
+        .radar-chart-container { position: relative; width: 100%; max-width: 450px; margin-left: auto; margin-right: auto; height: 300px; max-height: 400px; }
+         @media (min-width: 768px) { .radar-chart-container { height: 400px; } }
+    </style>
+</head>
+<body class="text-gray-800">
+
+
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+
+
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">My Production Growth Dashboard</h1>
+            <p class="text-lg text-gray-600 mt-2">Tracking Progress: July 2025 - July 2026</p>
+        </header>
+
+
+        <main>
+            <section id="kpi-overview" class="mb-8">
+                <h2 class="text-2xl font-bold mb-4 text-center">Overall Goal Progress</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-xl shadow-md">
+                        <h3 class="font-semibold text-lg mb-2">Assets Under Management (AUM)</h3>
+                        <div class="chart-container">
+                            <canvas id="aumChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-md">
+                        <h3 class="font-semibold text-lg mb-2">Total Clients</h3>
+                        <div class="chart-container">
+                            <canvas id="clientsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <div class="bg-white p-4 sm:p-6 rounded-xl shadow-md">
+                <div class="border-b border-gray-200 mb-6">
+                    <nav class="-mb-px flex flex-wrap justify-center gap-4" aria-label="Tabs">
+                        <button id="tab-btn-maximize" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm md:text-base">Maximize Relationships</button>
+                        <button id="tab-btn-acquire" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm md:text-base">Acquire New Clients</button>
+                        <button id="tab-btn-operate" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm md:text-base">Operate Efficiently</button>
+                    </nav>
+                </div>
+
+
+                <div id="tab-content-maximize" class="tab-content">
+                    <div class="text-center mb-6">
+                        <h3 class="text-xl font-bold">Maximize Current Client Relationships</h3>
+                        <p class="text-gray-600 mt-1">This section tracks your efforts to deepen relationships with your existing 78 clients. The goal is to increase AUM from this group through proactive service and to generate high-quality referrals by demonstrating value.</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="maximize-metrics"></div>
+                </div>
+
+
+                <div id="tab-content-acquire" class="tab-content hidden">
+                    <div class="text-center mb-6">
+                        <h3 class="text-xl font-bold">Strategic Client Acquisition</h3>
+                        <p class="text-gray-600 mt-1">Here, you can monitor your activities aimed at attracting and converting new prospects. Success in this area, through networking, marketing, and events, is key to expanding your client base beyond referrals.</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="acquire-metrics"></div>
+                </div>
+
+
+                <div id="tab-content-operate" class="tab-content hidden">
+                     <div class="text-center mb-6">
+                        <h3 class="text-xl font-bold">Operational Efficiency</h3>
+                        <p class="text-gray-600 mt-1">This area focuses on streamlining your business processes. By effectively using your CRM and managing your time, you create the capacity needed to handle growth without sacrificing service quality.</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="operate-metrics"></div>
+                </div>
+            </div>
+
+
+            <section id="strategy-summary" class="mt-8">
+                 <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h2 class="text-2xl font-bold mb-4 text-center">Strategy Balance Overview</h2>
+                    <p class="text-gray-600 mt-1 text-center mb-4">This chart provides a snapshot of your progress across the three core strategies. It helps you see if your efforts are balanced or if one area needs more attention to ensure well-rounded growth.</p>
+                    <div class="radar-chart-container">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                </div>
+            </section>
+            
+        </main>
+    </div>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const appState = {
+        goals: {
+            aum: { current: 5000000, target: 8500000 },
+            clients: { current: 78, target: 95 }
+        },
+        metrics: {
+            maximize: [
+                { id: 'm1', label: 'Personalized Emails Sent (Monthly)', current: 0, target: 78, type: 'input' },
+                { id: 'm2', label: '15-min Check-in Calls (Monthly)', current: 0, target: 20, type: 'input' },
+                { id: 'm3', label: 'Client Appreciation Gestures (Quarterly)', current: 0, target: 2, type: 'input' },
+                { id: 'm4', label: 'Held Away Asset Discussions (Monthly)', current: 0, target: 5, type: 'input' },
+                { id: 'm5', label: 'Personal Introductions Requested (Monthly)', current: 0, target: 10, type: 'input' },
+                { id: 'm6', label: 'Qualified Referrals Received (Monthly)', current: 0, target: 3, type: 'input' },
+            ],
+            acquire: [
+                { id: 'a1', label: 'Niche Defined/Refined', current: 0, target: 1, type: 'checkbox', date: 'by Aug 31, 2025' },
+                { id: 'a2', label: 'New COI Relationships Initiated (Monthly)', current: 0, target: 2, type: 'input' },
+                { id: 'a3', label: 'COI Meetings/Touchpoints (Monthly)', current: 0, target: 6, type: 'input' },
+                { id: 'a4', label: 'New LinkedIn Connections (Weekly)', current: 0, target: 10, type: 'input' },
+                { id: 'a5', label: 'Blog Posts/Videos Published (Quarterly)', current: 0, target: 4, type: 'input' },
+                { id: 'a6', label: 'Seminars/Webinars Hosted (Yearly)', current: 0, target: 4, type: 'input' },
+            ],
+            operate: [
+                { id: 'o1', label: 'CRM Updated Daily', current: 0, target: 1, type: 'checkbox', date: 'Daily Habit' },
+                { id: 'o2', label: 'Automated Sequences Implemented', current: 0, target: 1, type: 'checkbox', date: 'by Sep 30, 2025' },
+                { id: 'o3', label: 'Weekly Review Completed', current: 0, target: 1, type: 'checkbox', date: 'Weekly Habit' },
+                { id: 'o4', label: 'Quarterly Strategic Review Done', current: 0, target: 1, type: 'checkbox', date: 'Quarterly Habit' },
+            ]
+        }
+    };
+
+
+    let aumChart, clientsChart, radarChart;
+
+
+    const createMetricCard = (metric) => {
+        const percentage = metric.target > 0 ? (metric.current / metric.target) * 100 : (metric.current > 0 ? 100 : 0);
+        
+        let controlHtml = '';
+        if (metric.type === 'input') {
+            controlHtml = `
+                <div class="flex items-center gap-2 mt-2">
+                    <input type="number" id="input-${metric.id}" value="${metric.current}" min="0" class="w-20 text-center border-gray-300 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    <span class="text-gray-600 font-medium">/ ${metric.target}</span>
+                </div>`;
+        } else if (metric.type === 'checkbox') {
+            controlHtml = `
+                <div class="flex items-center justify-center gap-2 mt-3">
+                     <label for="input-${metric.id}" class="flex items-center cursor-pointer">
+                        <input type="checkbox" id="input-${metric.id}" ${metric.current ? 'checked' : ''} class="h-6 w-6 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                        <span class="ml-2 text-gray-700">${metric.current ? 'Completed' : 'Mark as Done'}</span>
+                    </label>
+                </div>`;
+        }
+
+
+        return `
+            <div class="bg-gray-50 p-4 rounded-lg shadow-sm text-center flex flex-col justify-between">
+                <div>
+                    <h4 class="font-semibold text-gray-700">${metric.label}</h4>
+                    ${metric.date ? `<p class="text-sm text-gray-500">${metric.date}</p>` : ''}
+                </div>
+                <div class="my-4">
+                    <div class="bg-gray-200 rounded-full h-2.5">
+                        <div id="progress-${metric.id}" class="bg-teal-600 h-2.5 rounded-full" style="width: ${percentage}%"></div>
+                    </div>
+                </div>
+                ${controlHtml}
+            </div>`;
+    };
+
+
+    const renderMetrics = () => {
+        const maximizeContainer = document.getElementById('maximize-metrics');
+        const acquireContainer = document.getElementById('acquire-metrics');
+        const operateContainer = document.getElementById('operate-metrics');
+
+
+        maximizeContainer.innerHTML = appState.metrics.maximize.map(createMetricCard).join('');
+        acquireContainer.innerHTML = appState.metrics.acquire.map(createMetricCard).join('');
+        operateContainer.innerHTML = appState.metrics.operate.map(createMetricCard).join('');
+        addEventListeners();
+    };
+
+
+    const addEventListeners = () => {
+        Object.keys(appState.metrics).forEach(category => {
+            appState.metrics[category].forEach(metric => {
+                const inputElement = document.getElementById(`input-${metric.id}`);
+                if (inputElement) {
+                    const eventType = metric.type === 'checkbox' ? 'change' : 'keyup';
+                    inputElement.addEventListener(eventType, (e) => {
+                        if (metric.type === 'checkbox') {
+                            metric.current = e.target.checked ? 1 : 0;
+                            const label = e.target.nextElementSibling;
+                            if(label) label.textContent = e.target.checked ? 'Completed' : 'Mark as Done';
+                        } else {
+                            metric.current = parseInt(e.target.value) || 0;
+                        }
+                        updateProgress(metric);
+                        updateRadarChart();
+                    });
+                }
+            });
+        });
+    };
+
+
+    const updateProgress = (metric) => {
+        const progressBar = document.getElementById(`progress-${metric.id}`);
+        if (progressBar) {
+            const percentage = metric.target > 0 ? Math.min(100, (metric.current / metric.target) * 100) : (metric.current > 0 ? 100 : 0);
+            progressBar.style.width = `${percentage}%`;
+        }
+    };
+    
+    const createCharts = () => {
+        const aumCtx = document.getElementById('aumChart').getContext('2d');
+        const clientsCtx = document.getElementById('clientsChart').getContext('2d');
+        const radarCtx = document.getElementById('radarChart').getContext('2d');
+
+
+        const chartOptions = {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    ticks: { display: false },
+                    grid: { display: false },
+                },
+                y: {
+                    grid: { display: false },
+                    ticks: { display: false },
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: { enabled: false },
+                annotation: {
+                    annotations: {
+                        currentLabel: {
+                            type: 'label',
+                            xValue: (ctx) => (ctx.chart.scales.x.max / 2),
+                            yValue: 0,
+                            content: '',
+                            font: { size: 16, weight: 'bold' },
+                            color: 'white',
+                            position: 'start'
+                        }
+                    }
+                }
+            }
+        };
+
+
+        const formatCurrency = (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
+
+
+        aumChart = new Chart(aumCtx, {
+            type: 'bar',
+            data: {
+                labels: ['AUM'],
+                datasets: [{
+                    label: 'Current AUM',
+                    data: [appState.goals.aum.current],
+                    backgroundColor: '#0d9488',
+                    borderColor: '#0f766e',
+                    borderWidth: 1,
+                    borderRadius: 5,
+                }, {
+                    label: 'Remaining',
+                    data: [appState.goals.aum.target - appState.goals.aum.current],
+                    backgroundColor: '#e5e7eb',
+                    borderRadius: 5,
+                }]
+            },
+            options: { ...chartOptions, scales: { ...chartOptions.scales, x: { ...chartOptions.scales.x, stacked: true }, y: { ...chartOptions.scales.y, stacked: true } } },
+            plugins: [{
+                id: 'aumDatalabels',
+                afterDraw(chart) {
+                    const { ctx, chartArea: { left, top, right, bottom }, scales: {x,y} } = chart;
+                    ctx.save();
+                    const currentValText = `${formatCurrency(appState.goals.aum.current)} / ${formatCurrency(appState.goals.aum.target)}`;
+                    ctx.font = '600 16px Inter';
+                    ctx.fillStyle = 'rgba(0,0,0,0.8)';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(currentValText, left + (right-left)/2, top + (bottom-top)/2 + 6);
+                    ctx.restore();
+                }
+            }]
+        });
+
+
+        clientsChart = new Chart(clientsCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Clients'],
+                datasets: [{
+                    label: 'Current Clients',
+                    data: [appState.goals.clients.current],
+                    backgroundColor: '#4f46e5',
+                    borderColor: '#4338ca',
+                    borderWidth: 1,
+                    borderRadius: 5,
+                }, {
+                    label: 'Remaining',
+                    data: [appState.goals.clients.target - appState.goals.clients.current],
+                    backgroundColor: '#e5e7eb',
+                    borderRadius: 5,
+                }]
+            },
+            options: { ...chartOptions, scales: { ...chartOptions.scales, x: { ...chartOptions.scales.x, stacked: true }, y: { ...chartOptions.scales.y, stacked: true } } },
+            plugins: [{
+                id: 'clientDatalabels',
+                afterDraw(chart) {
+                    const { ctx, chartArea: { left, top, right, bottom }, scales: {x,y} } = chart;
+                    ctx.save();
+                    const currentValText = `${appState.goals.clients.current} / ${appState.goals.clients.target}`;
+                    ctx.font = '600 16px Inter';
+                    ctx.fillStyle = 'rgba(0,0,0,0.8)';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(currentValText, left + (right-left)/2, top + (bottom-top)/2 + 6);
+                    ctx.restore();
+                }
+            }]
+        });
+        
+        radarChart = new Chart(radarCtx, {
+            type: 'radar',
+            data: {
+                labels: ['Maximize Relationships', 'Acquire New Clients', 'Operate Efficiently'],
+                datasets: [{
+                    label: 'Progress',
+                    data: [0, 0, 0],
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgba(59, 130, 246, 1)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        angleLines: { display: false },
+                        suggestedMin: 0,
+                        suggestedMax: 100,
+                        ticks: {
+                            backdropColor: 'rgba(255, 255, 255, 0.75)',
+                            stepSize: 25,
+                             callback: function(value) {
+                                return value + '%'
+                            }
+                        },
+                        pointLabels: {
+                            font: { size: 14 }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+        updateRadarChart();
+    };
+
+
+    const calculateCategoryProgress = (category) => {
+        const metrics = appState.metrics[category];
+        if (metrics.length === 0) return 0;
+        const totalProgress = metrics.reduce((sum, metric) => {
+            const progress = metric.target > 0 ? (metric.current / metric.target) : (metric.current > 0 ? 1 : 0);
+            return sum + Math.min(1, progress); // Cap progress at 100% for each metric
+        }, 0);
+        return (totalProgress / metrics.length) * 100;
+    };
+
+
+    const updateRadarChart = () => {
+        const maximizeProgress = calculateCategoryProgress('maximize');
+        const acquireProgress = calculateCategoryProgress('acquire');
+        const operateProgress = calculateCategoryProgress('operate');
+        radarChart.data.datasets[0].data = [maximizeProgress, acquireProgress, operateProgress];
+        radarChart.update();
+    };
+
+
+    const setupTabs = () => {
+        const tabs = ['maximize', 'acquire', 'operate'];
+        tabs.forEach(tabId => {
+            const btn = document.getElementById(`tab-btn-${tabId}`);
+            btn.addEventListener('click', () => {
+                tabs.forEach(id => {
+                    document.getElementById(`tab-content-${id}`).classList.add('hidden');
+                    document.getElementById(`tab-btn-${id}`).classList.remove('tab-active');
+                    document.getElementById(`tab-btn-${id}`).classList.add('tab-inactive');
+                });
+                document.getElementById(`tab-content-${tabId}`).classList.remove('hidden');
+                btn.classList.add('tab-active');
+                btn.classList.remove('tab-inactive');
+            });
+        });
+        document.getElementById('tab-btn-maximize').click();
+    };
+
+
+    function init() {
+        renderMetrics();
+        createCharts();
+        setupTabs();
+    }
+
+
+    init();
+});
+</script>
+
+
+</body>
+</html>
